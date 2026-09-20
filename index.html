@@ -1,0 +1,945 @@
+<title>Field General</title>
+<style>
+  :root{
+    --board:#f6f1e2; --board2:#ffffff; --ink:#1c2b22; --ink-dim:#5b6b5f;
+    --line:rgba(28,43,34,.16); --accent:#b9790a; --accent-ink:#2a1d00;
+    --danger:#c1432a; --info:#136f89; --zone:rgba(19,111,137,.10);
+    --manfill:rgba(193,67,42,.10); --card:#ffffff; --shadow:0 1px 0 rgba(28,43,34,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --board:#0d2f22; --board2:#123826; --ink:#f4efdd; --ink-dim:#aebeb2;
+      --line:rgba(244,239,221,.14); --accent:#ffcc33; --accent-ink:#2a1d00;
+      --danger:#ff6a4a; --info:#63cfe8; --zone:rgba(99,207,232,.14);
+      --manfill:rgba(255,106,74,.12); --card:#123826; --shadow:0 1px 0 rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"]{
+    --board:#0d2f22; --board2:#123826; --ink:#f4efdd; --ink-dim:#aebeb2;
+    --line:rgba(244,239,221,.14); --accent:#ffcc33; --accent-ink:#2a1d00;
+    --danger:#ff6a4a; --info:#63cfe8; --zone:rgba(99,207,232,.14);
+    --manfill:rgba(255,106,74,.12); --card:#123826; --shadow:0 1px 0 rgba(0,0,0,.3);
+  }
+
+  @font-face{font-family:'Anton';src:local('Anton');}
+  * { box-sizing:border-box; }
+  html,body{ background:var(--board); }
+  body{
+    margin:0; padding:0 16px; padding-block:0;
+    color:var(--ink); background:var(--board);
+    font-family:'Libre Franklin',system-ui,-apple-system,Segoe UI,sans-serif;
+    line-height:1.5;
+  }
+  h1,h2,h3,.disp{ font-family:'Anton',Impact,sans-serif; font-weight:400; letter-spacing:.01em; text-wrap:balance; }
+  .lbl{ font-family:'Oswald',system-ui,sans-serif; text-transform:uppercase; letter-spacing:.08em; }
+  a{ color:var(--accent); }
+  .wrap{ max-width:900px; margin:0 auto; }
+
+  /* ---- Scorebug header ---- */
+  .scorebug{
+    position:sticky; top:env(safe-area-inset-top,0px); z-index:40;
+    background:var(--board); border-bottom:2px solid var(--ink);
+    padding:10px 0 8px;
+  }
+  .scorebug-row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .brand{ display:flex; align-items:baseline; gap:10px; flex:1 1 auto; min-width:180px; }
+  .brand .disp{ font-size:clamp(22px,4vw,30px); margin:0; }
+  .brand .tag{ font-size:11px; color:var(--ink-dim); }
+  .iq-pill{
+    display:flex; align-items:center; gap:10px; background:var(--ink); color:var(--board);
+    border-radius:6px; padding:6px 12px; font-family:'Oswald',sans-serif;
+  }
+  :root[data-theme="dark"] .iq-pill, @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .iq-pill{ background:var(--accent); color:var(--accent-ink); } }
+  .iq-pill b{ font-size:18px; font-variant-numeric:tabular-nums; }
+  .iq-pill small{ display:block; font-size:9px; letter-spacing:.08em; text-transform:uppercase; opacity:.85; }
+  .streak{ font-family:'Oswald',sans-serif; font-size:12px; color:var(--ink-dim); white-space:nowrap; }
+  .streak b{ color:var(--danger); }
+
+  /* ---- Level tabs ---- */
+  .tabs{ display:flex; gap:6px; overflow-x:auto; padding:10px 0 0; margin:0 0 -2px; }
+  .tab{
+    flex:0 0 auto; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:.06em; text-transform:uppercase;
+    background:none; border:2px solid var(--line); border-bottom:none; color:var(--ink-dim);
+    padding:9px 14px 10px; border-radius:8px 8px 0 0; cursor:pointer; display:flex; align-items:center; gap:8px;
+  }
+  .tab .n{ font-family:'Anton',sans-serif; font-size:15px; color:var(--ink-dim); }
+  .tab[aria-selected="true"]{ color:var(--ink); border-color:var(--ink); background:var(--card); }
+  .tab[aria-selected="true"] .n{ color:var(--accent); }
+  .ring{ width:14px; height:14px; border-radius:50%; border:2px solid var(--line); position:relative; flex:0 0 auto; }
+  .ring.done{ border-color:var(--accent); background:var(--accent); }
+
+  main{ padding:18px 0 90px; }
+  .level-head{ margin:4px 0 18px; }
+  .level-head .eyebrow{ font-size:11px; color:var(--accent); margin:0 0 4px; }
+  .level-head h2{ font-size:clamp(24px,5vw,34px); margin:0 0 6px; }
+  .level-head p{ color:var(--ink-dim); margin:0; max-width:60ch; }
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:20px; margin:0 0 18px; box-shadow:var(--shadow);
+  }
+  .card h3{ font-size:19px; margin:0 0 4px; }
+  .card .topic{ font-size:10px; color:var(--accent); margin:0 0 10px; }
+  .card p{ margin:0 0 10px; max-width:66ch; }
+  .card ul{ margin:0 0 10px; padding-left:20px; }
+  .card li{ margin:0 0 4px; }
+
+  .note{
+    border-left:3px solid var(--accent); background:var(--zone); border-radius:0 8px 8px 0;
+    padding:10px 14px; margin:12px 0; font-size:14px;
+  }
+  .note b{ font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:11px; letter-spacing:.06em; display:block; margin-bottom:3px; color:var(--accent-ink); }
+  :root[data-theme="dark"] .note b, @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .note b{ color:var(--accent); } }
+
+  /* ---- Diagrams ---- */
+  figure.diagram{ margin:14px 0; }
+  figure.diagram svg{ display:block; max-width:100%; height:auto; width:100%; color:var(--ink); }
+  figure.diagram figcaption{ font-size:12px; color:var(--ink-dim); margin-top:6px; }
+  .diag-scroll{ overflow-x:auto; }
+  .pl-off circle{ fill:var(--card); stroke:var(--ink); stroke-width:2; }
+  .pl-off text{ fill:var(--ink); }
+  .pl-def circle{ fill:var(--danger); stroke:var(--ink); stroke-width:1.5; opacity:.92; }
+  .pl-def text{ fill:#fff; }
+  .pl-def2 circle{ fill:var(--info); stroke:var(--ink); stroke-width:1.5; opacity:.92; }
+  .pl-def2 text{ fill:#fff; }
+  .plabel{ font:700 9px 'Oswald',sans-serif; text-anchor:middle; }
+  .psub{ font:9px 'Libre Franklin',sans-serif; fill:var(--ink-dim); text-anchor:middle; }
+  .zonefill{ fill:var(--zone); stroke:var(--info); stroke-width:1; stroke-dasharray:3 2; opacity:.9; }
+  .manfill{ fill:var(--manfill); stroke:var(--danger); stroke-width:1; stroke-dasharray:3 2; opacity:.9; }
+  .los{ stroke:currentColor; stroke-width:2; stroke-dasharray:6 4; }
+  .tag{ font:700 10px 'Oswald',sans-serif; fill:currentColor; letter-spacing:.04em; }
+  .tagd{ font:9px 'Libre Franklin',sans-serif; fill:var(--ink-dim); }
+  .route{ stroke:var(--accent); stroke-width:2.5; fill:none; }
+  .route.arrowhead{ fill:var(--accent); stroke:none; }
+  .weak{ stroke:var(--danger); stroke-width:2; fill:none; stroke-dasharray:2 3; }
+  .weakfill{ fill:none; stroke:var(--danger); stroke-width:1.5; stroke-dasharray:2 3; }
+  .badge{ fill:var(--danger); }
+  .badgetxt{ font:800 10px 'Oswald',sans-serif; fill:#fff; text-anchor:middle; }
+  .fieldbg{ fill:var(--board2); }
+  .box{ fill:none; stroke:currentColor; stroke-width:1.5; }
+  .boxfill{ fill:var(--zone); stroke:var(--info); stroke-width:1.5; }
+  .flowline{ stroke:currentColor; stroke-width:1.5; fill:none; }
+  .flowarrow{ fill:currentColor; stroke:none; }
+  .flowtxt{ font:600 11px 'Oswald',sans-serif; fill:var(--ink); text-transform:uppercase; letter-spacing:.03em; }
+  .flowsub{ font:10px 'Libre Franklin',sans-serif; fill:var(--ink-dim); }
+
+  /* ---- Embedded checkpoint quiz ---- */
+  .checkpoint{
+    margin-top:16px; border:1px dashed var(--line); border-radius:10px; padding:14px;
+  }
+  .checkpoint .cp-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .checkpoint .cp-head .lbl{ font-size:10px; color:var(--ink-dim); }
+  .cp-q{ font-weight:600; margin:0 0 10px; }
+  .cp-choices{ display:grid; gap:8px; }
+  .cp-choice{
+    text-align:left; font-family:inherit; font-size:14px; background:var(--board2); color:var(--ink);
+    border:1px solid var(--line); border-radius:8px; padding:10px 12px; cursor:pointer;
+  }
+  .cp-choice:hover{ border-color:var(--accent); }
+  .cp-choice.correct{ border-color:var(--info); background:var(--zone); }
+  .cp-choice.wrong{ border-color:var(--danger); background:var(--manfill); }
+  .cp-choice:disabled{ cursor:default; }
+  .cp-fb{ margin-top:10px; font-size:13.5px; padding:10px 12px; border-radius:8px; background:var(--board2); border:1px solid var(--line); display:none; }
+  .cp-fb.show{ display:block; }
+  .cp-fb b{ font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:11px; letter-spacing:.05em; }
+
+  /* ---- Pop quiz launcher + modal ---- */
+  .pop-btn{
+    position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom,0px)); z-index:50;
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.05em; font-size:13px;
+    background:var(--accent); color:var(--accent-ink); border:none; border-radius:999px;
+    padding:13px 18px; box-shadow:0 6px 18px rgba(0,0,0,.25); cursor:pointer; display:flex; align-items:center; gap:8px;
+  }
+  .pop-btn .dot{ width:8px; height:8px; border-radius:50%; background:var(--danger); }
+  @media (prefers-reduced-motion:no-preference){ .pop-btn .dot{ animation:pulse 1.8s ease-in-out infinite; } }
+  @keyframes pulse{ 0%,100%{ opacity:1; transform:scale(1);} 50%{ opacity:.5; transform:scale(1.3);} }
+
+  .modal-veil{ position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:60; display:none; align-items:flex-end; justify-content:center; }
+  .modal-veil.open{ display:flex; }
+  @media (min-width:640px){ .modal-veil{ align-items:center; } }
+  .modal{
+    background:var(--card); color:var(--ink); width:100%; max-width:520px; border-radius:16px 16px 0 0;
+    padding:20px; max-height:88vh; overflow-y:auto; border:1px solid var(--line);
+  }
+  @media (min-width:640px){ .modal{ border-radius:16px; } }
+  .modal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .modal-head h3{ margin:0; font-size:18px; }
+  .modal-close{ background:none; border:none; color:var(--ink-dim); font-size:22px; cursor:pointer; line-height:1; padding:4px; }
+  .diff-row{ display:flex; gap:4px; margin-bottom:12px; }
+  .diff-dot{ width:18px; height:6px; border-radius:3px; background:var(--line); }
+  .diff-dot.on{ background:var(--accent); }
+
+  .empty-state{ text-align:center; color:var(--ink-dim); padding:30px 10px; font-size:14px; }
+
+  footer{ border-top:1px solid var(--line); padding:20px 0 40px; color:var(--ink-dim); font-size:12px; max-width:66ch; margin:0 auto; }
+  footer a{ color:var(--ink-dim); text-decoration:underline; }
+
+  [hidden]{ display:none !important; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600;700&family=Libre+Franklin:wght@400;500;600;700&display=swap">
+
+<div class="scorebug">
+  <div class="wrap scorebug-row">
+    <div class="brand">
+      <h1 class="disp">FIELD GENERAL</h1>
+      <span class="tag">Read the defense. Beat the difficulty slider.</span>
+    </div>
+    <div class="streak" id="streakLine">Streak <b id="streakVal">0</b></div>
+    <div class="iq-pill"><div><small>Football IQ</small><b id="iqVal">50</b></div></div>
+  </div>
+  <div class="wrap tabs" role="tablist" id="tabs"></div>
+</div>
+
+<main class="wrap" id="levelHost"></main>
+
+<button class="pop-btn" id="popBtn" type="button"><span class="dot"></span>Pop Quiz</button>
+
+<div class="modal-veil" id="modalVeil">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle">Pop Quiz</h3>
+      <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="diff-row" id="diffRow"></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<footer class="wrap">
+  Built from public coaching fundamentals (safety-shell reads, box counts, blitz tells, personnel groupings, pattern-match coverage) and current Madden NFL 27 / EA Sports College Football 27 mechanics. Coverage rules vary by scheme and every playbook has exceptions &mdash; use this as a mental framework, then confirm what your own game and opponent actually show you in film/practice mode. Progress is saved to this browser only.
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================== SVG HELPERS ============================== */
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function circleTxt(cls,x,y,r,label,sub){
+  var s='<g class="'+cls+'"><circle cx="'+x+'" cy="'+y+'" r="'+r+'"></circle><text class="plabel" x="'+x+'" y="'+(y+3)+'">'+esc(label)+'</text></g>';
+  if(sub) s+='<text class="psub" x="'+x+'" y="'+(y+r+11)+'">'+esc(sub)+'</text>';
+  return s;
+}
+function line(cls,x1,y1,x2,y2){ return '<line class="'+cls+'" x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'"></line>'; }
+function poly(cls,pts){ return '<polygon class="'+cls+'" points="'+pts+'"></polygon>'; }
+function txt(cls,x,y,s,anchor){ return '<text class="'+cls+'" x="'+x+'" y="'+y+'" text-anchor="'+(anchor||'middle')+'">'+esc(s)+'</text>'; }
+function rect(cls,x,y,w,h,rx){ return '<rect class="'+cls+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+(rx||4)+'"></rect>'; }
+function los(y,x1,x2){ x1=x1||10; x2=x2||390; return line('los',x1,y,x2,y)+txt('tag',x1,y-7,'LOS','start'); }
+function arrow(cls,x1,y1,x2,y2){
+  var dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy)||1, ux=dx/len, uy=dy/len, size=7;
+  var bx=x2-ux*size, by=y2-uy*size, px=-uy, py=ux;
+  var p1=x2+','+y2, p2=(bx+px*size*0.55)+','+(by+py*size*0.55), p3=(bx-px*size*0.55)+','+(by-py*size*0.55);
+  return line(cls,x1,y1,bx,by)+poly(cls+' arrowhead',p1+' '+p2+' '+p3);
+}
+function svgWrap(vb,inner,label){
+  return '<figure class="diagram"><div class="diag-scroll"><svg viewBox="0 0 '+vb+'" role="img" aria-label="'+esc(label)+'">'+inner+'</svg></div><figcaption>'+esc(label)+'</figcaption></figure>';
+}
+
+/* ============================== DIAGRAMS ============================== */
+
+function diagFormationBasics(){
+  var s='';
+  s+=rect('box',6,6,388,228,10);
+  s+=los(150);
+  // offense (below LOS)
+  s+=circleTxt('pl-off',110,168,13,'LT');
+  s+=circleTxt('pl-off',150,168,13,'LG');
+  s+=circleTxt('pl-off',190,168,13,'C');
+  s+=circleTxt('pl-off',230,168,13,'RG');
+  s+=circleTxt('pl-off',270,168,13,'RT');
+  s+=circleTxt('pl-off',190,205,13,'QB');
+  s+=circleTxt('pl-off',150,225,12,'RB');
+  s+=circleTxt('pl-off',40,160,12,'WR');
+  s+=circleTxt('pl-off',330,160,12,'WR');
+  s+=circleTxt('pl-off',300,168,12,'TE');
+  // defense (above LOS)
+  s+=circleTxt('pl-def',108,120,12,'DE');
+  s+=circleTxt('pl-def',150,115,12,'DT');
+  s+=circleTxt('pl-def',230,115,12,'DT');
+  s+=circleTxt('pl-def',272,120,12,'DE');
+  s+=circleTxt('pl-def',150,85,12,'LB');
+  s+=circleTxt('pl-def',230,85,12,'LB');
+  s+=circleTxt('pl-def2',40,60,11,'CB');
+  s+=circleTxt('pl-def2',330,60,11,'CB');
+  s+=circleTxt('pl-def2',150,35,11,'S');
+  s+=circleTxt('pl-def2',230,35,11,'S');
+  return svgWrap('400 240',s,'11 personnel offense (white) lined up against a base 4-3 defense (red = front seven, blue = secondary), split by the line of scrimmage.');
+}
+
+function miniFormationRow(y0,label,detail,rb,te,wr){
+  var s='<g transform="translate(8,'+y0+')">';
+  s+=rect('box',0,0,92,74,6);
+  s+=line('los',4,40,88,40);
+  s+=circleTxt('pl-off',46,54,6,'');
+  for(var i=0;i<rb;i++) s+=circleTxt('pl-off',30+i*30,66,5,'');
+  for(var i=0;i<te;i++) s+=circleTxt('pl-off',74,54,5,'');
+  var wx=[10,82,24,68,46];
+  for(var i=0;i<wr;i++) s+=circleTxt('pl-off',wx[i],26,5,'');
+  s+='</g>';
+  s+=txt('flowtxt',112,y0+32,label,'start');
+  s+=txt('flowsub',112,y0+50,detail,'start');
+  return s;
+}
+function diagPersonnel(){
+  var rows=[
+    ['10 PERSONNEL','1 RB · 0 TE · 4 WR',1,0,4],
+    ['11 PERSONNEL','1 RB · 1 TE · 3 WR',1,1,3],
+    ['12 PERSONNEL','1 RB · 2 TE · 2 WR',1,2,2],
+    ['21 PERSONNEL','2 RB · 1 TE · 2 WR',2,1,2]
+  ];
+  var s='', y=6, rowH=92;
+  rows.forEach(function(r){
+    s+=miniFormationRow(y,r[0],r[1],r[2],r[3],r[4]);
+    y+=rowH;
+  });
+  return svgWrap('380 '+(y+4),s,'Four common personnel groupings. First digit = running backs, second digit = tight ends; whatever is left of the 5 skill spots is wide receivers.');
+}
+
+function diagPresnapFlow(){
+  var steps=[
+    ['1','COUNT SAFETIES','One-high or two-high?'],
+    ['2','COUNT THE BOX','Light, neutral, or loaded?'],
+    ['3','CHECK CB DEPTH & MOTION','Press or off — does a defender follow?'],
+    ['4','PICK YOUR ANSWER','Hot route, protection slide, or audible']
+  ];
+  var s='', rowH=64, gap=24, y=6, w=380;
+  for(var i=0;i<steps.length;i++){
+    s+=rect('box',6,y,w,rowH,10);
+    s+='<circle cx="34" cy="'+(y+rowH/2)+'" r="16" class="boxfill"></circle>';
+    s+='<text class="tag" x="34" y="'+(y+rowH/2+4)+'" text-anchor="middle">'+steps[i][0]+'</text>';
+    s+=txt('flowtxt',60,y+27,steps[i][1],'start');
+    s+=txt('flowsub',60,y+45,steps[i][2],'start');
+    if(i<steps.length-1) s+=arrow('flowline',200,y+rowH,200,y+rowH+gap);
+    y+=rowH+gap;
+  }
+  return svgWrap('392 '+(y-gap+6),s,'The four-step pre-snap read, repeated every single play before the snap.');
+}
+
+function diagSafetyCount(){
+  var s='';
+  // Two-high
+  s+='<g transform="translate(0,0)">';
+  s+=rect('box',6,6,190,150,8);
+  s+=los(96,10,190);
+  s+=circleTxt('pl-def2',60,40,10,'S');
+  s+=circleTxt('pl-def2',140,40,10,'S');
+  s+=circleTxt('pl-def2',30,70,9,'C');
+  s+=circleTxt('pl-def2',170,70,9,'C');
+  s+=circleTxt('pl-def',100,55,9,'LB');
+  s+=txt('flowsub',100,145,'TWO-HIGH → C2 / C4 / C6 family');
+  s+='</g>';
+  // One-high
+  s+='<g transform="translate(206,0)">';
+  s+=rect('box',6,6,190,150,8);
+  s+=los(96,10,190);
+  s+=circleTxt('pl-def2',100,32,10,'S');
+  s+=circleTxt('pl-def2',30,70,9,'C');
+  s+=circleTxt('pl-def2',170,70,9,'C');
+  s+=circleTxt('pl-def',70,55,9,'LB');
+  s+=circleTxt('pl-def',130,55,9,'LB');
+  s+=txt('flowsub',100,145,'ONE-HIGH → C0 / C1 / C3 family');
+  s+='</g>';
+  return svgWrap('402 160',s,'Your very first read: count the deep safeties. Two-high funnels the defense toward Cover 2/4/6; one-high funnels it toward Cover 0/1/3.');
+}
+
+function coverageShell(kind){
+  var s=rect('box',6,6,388,220,10);
+  s+=los(150);
+  s+=circleTxt('pl-off',110,170,11,'X');
+  s+=circleTxt('pl-off',270,170,11,'Z');
+  s+=circleTxt('pl-off',190,175,11,'H');
+  s+=circleTxt('pl-off',190,210,11,'QB');
+  s+=circleTxt('pl-off',150,175,10,'RB');
+  s+=circleTxt('pl-off',230,175,10,'Y');
+
+  if(kind==='c0'){
+    s+=line('manfill',110,170,70,60); s+=circleTxt('pl-def2',70,55,10,'C');
+    s+=line('manfill',270,170,310,60); s+=circleTxt('pl-def2',310,55,10,'C');
+    s+=line('manfill',190,175,190,90); s+=circleTxt('pl-def2',190,80,10,'N');
+    s+=line('manfill',150,175,150,100); s+=circleTxt('pl-def',150,90,9,'LB');
+    s+=line('manfill',230,175,230,100); s+=circleTxt('pl-def',230,90,9,'LB');
+    s+=txt('flowsub',200,20,'COVER 0 — zero deep help, everyone locked in man, extra rusher free');
+  } else if(kind==='c1'){
+    s+=line('manfill',110,170,70,70); s+=circleTxt('pl-def2',70,60,10,'C');
+    s+=line('manfill',270,170,310,70); s+=circleTxt('pl-def2',310,60,10,'C');
+    s+=line('manfill',190,175,190,100); s+=circleTxt('pl-def2',190,90,10,'N');
+    s+=circleTxt('pl-def2',190,35,11,'FS');
+    s+=circleTxt('pl-def',150,100,9,'LB — robber');
+    s+=circleTxt('pl-def',230,110,9,'LB');
+    s+=txt('flowsub',200,20,'COVER 1 — one deep safety in the middle, man everywhere else, a free "robber" underneath');
+  } else if(kind==='c2'){
+    s+=poly('zonefill','10,120 100,120 60,60 10,60');
+    s+=poly('zonefill','390,120 300,120 340,60 390,60');
+    s+=circleTxt('pl-def2',60,45,10,'S'); s+=circleTxt('pl-def2',340,45,10,'S');
+    s+=circleTxt('pl-def2',80,130,9,'C — flat'); s+=circleTxt('pl-def2',320,130,9,'C — flat');
+    s+=circleTxt('pl-def',150,100,9,'LB'); s+=circleTxt('pl-def',190,90,9,'LB'); s+=circleTxt('pl-def',230,100,9,'LB');
+    s+=poly('weakfill','170,60 220,60 200,35');
+    s+=txt('flowsub',200,20,'COVER 2 — two deep halves, corners squat in the flats; weak spots: the deep sideline and the "hole" between the safeties');
+  } else if(kind==='c3'){
+    s+=poly('zonefill','10,120 130,120 90,50 10,50');
+    s+=poly('zonefill','390,120 270,120 310,50 390,50');
+    s+=poly('zonefill','150,120 250,120 225,45 175,45');
+    s+=circleTxt('pl-def2',200,35,10,'FS');
+    s+=circleTxt('pl-def2',60,110,9,'C — 1/3'); s+=circleTxt('pl-def2',340,110,9,'C — 1/3');
+    s+=circleTxt('pl-def',110,95,9,'LB curl'); s+=circleTxt('pl-def',290,95,9,'LB curl'); s+=circleTxt('pl-def',200,90,8,'LB hook');
+    s+=poly('weakfill','150,60 175,45 200,60 175,80');
+    s+=txt('flowsub',200,20,'COVER 3 — one deep safety plus corners splitting three deep thirds; weak spots: the seams and 4-verticals');
+  } else if(kind==='c4'){
+    s+=poly('zonefill','10,120 105,120 75,40 10,40');
+    s+=poly('zonefill','135,120 200,120 190,40 145,40');
+    s+=poly('zonefill','200,120 265,120 255,40 210,40');
+    s+=poly('zonefill','390,120 295,120 325,40 390,40');
+    s+=circleTxt('pl-def2',90,30,9,'S'); s+=circleTxt('pl-def2',310,30,9,'S');
+    s+=circleTxt('pl-def2',30,110,9,'C'); s+=circleTxt('pl-def2',370,110,9,'C');
+    s+=circleTxt('pl-def',150,105,8,'LB hook'); s+=circleTxt('pl-def',230,105,8,'LB hook'); s+=circleTxt('pl-def',190,115,8,'LB');
+    s+=txt('flowsub',200,20,'COVER 4 (QUARTERS) — four deep quarters; CBs match #1 vertical, safeties match #2 vertical, everything short gets passed off underneath');
+  } else if(kind==='c6'){
+    s+=poly('zonefill','10,120 100,120 60,60 10,60');
+    s+=poly('zonefill','390,120 300,120 330,40 390,40');
+    s+=poly('zonefill','200,120 300,120 275,40 235,40');
+    s+=circleTxt('pl-def2',60,45,9,'S'); s+=circleTxt('pl-def2',310,30,9,'S');
+    s+=circleTxt('pl-def2',80,130,9,'C — flat'); s+=circleTxt('pl-def2',370,110,9,'C');
+    s+=circleTxt('pl-def',150,105,8,'LB'); s+=circleTxt('pl-def',230,105,8,'LB'); s+=circleTxt('pl-def',190,115,8,'LB');
+    s+=txt('flowsub',200,20,'COVER 6 — Cover 2 to the wide/field side, Cover 4 to the short/boundary side of the same defense');
+  }
+  return s;
+}
+function diagCoverage(kind,label){ return svgWrap('400 240',coverageShell(kind),label); }
+
+function diagPressOff(){
+  var s='';
+  s+='<g transform="translate(0,0)">';
+  s+=rect('box',6,6,190,150,8);
+  s+=los(96,10,190);
+  s+=circleTxt('pl-off',100,102,11,'WR');
+  s+=circleTxt('pl-def2',100,80,10,'CB');
+  s+=txt('flowsub',100,140,'PRESS — tight, jamming the release');
+  s+=txt('psub',100,20,'often man / aggressive zone');
+  s+='</g>';
+  s+='<g transform="translate(206,0)">';
+  s+=rect('box',6,6,190,150,8);
+  s+=los(96,10,190);
+  s+=circleTxt('pl-off',100,110,11,'WR');
+  s+=circleTxt('pl-def2',100,55,10,'CB');
+  s+=txt('flowsub',100,140,'OFF — 6&ndash;8 yards of cushion');
+  s+=txt('psub',100,20,'often zone, watching the QB');
+  s+='</g>';
+  return svgWrap('402 160',s,'Corner depth is a tell on its own. Press = tight to the receiver, eyes on him. Off = deep cushion, eyes on the quarterback.');
+}
+
+function boxCount(loaded){
+  var s=rect('box',6,6,388,150,10);
+  s+=los(96);
+  var boxDef = loaded ? 8 : 6;
+  var xs=[70,110,150,190,230,270,310,350];
+  for(var i=0;i<boxDef;i++) s+=circleTxt('pl-def', xs[i], 65, 10, i<4?'DL':'LB');
+  if(!loaded){ s+=circleTxt('pl-def2',30,30,9,'S'); s+=circleTxt('pl-def2',370,30,9,'S'); }
+  s+=circleTxt('pl-off',190,130,11,'C');
+  s+=circleTxt('pl-off',150,130,11,'G'); s+=circleTxt('pl-off',230,130,11,'G');
+  s+=circleTxt('pl-off',110,130,11,'T'); s+=circleTxt('pl-off',270,130,11,'T');
+  s+=circleTxt('pl-off',190,160,11,'QB');
+  s+=txt('flowsub',200,20, loaded ? '8 IN THE BOX — loaded, expect run support / blitz' : '6 IN THE BOX — light, defense is thinking pass');
+  return s;
+}
+function diagBoxCount(){
+  var s='<g transform="translate(0,0) scale(0.485)">'+boxCount(false)+'</g>';
+  s+='<g transform="translate(195,0) scale(0.485)">'+boxCount(true)+'</g>';
+  return svgWrap('390 90',s,'Box count: 6 or fewer defenders near the line is light (pass-first defense, run favored); 8 or more is loaded (run-first defense, pass favored).');
+}
+
+function diagBlitzTell(){
+  var s='';
+  s+='<g transform="translate(0,0)">';
+  s+=rect('box',6,6,190,150,8);
+  s+=los(96,10,190);
+  s+=circleTxt('pl-def',60,70,9,'DE'); s+=circleTxt('pl-def',140,70,9,'DE');
+  s+=circleTxt('pl-def',100,80,9,'LB'); s+=circleTxt('pl-def2',30,40,8,'S'); s+=circleTxt('pl-def2',170,40,8,'S');
+  s+=txt('flowsub',100,140,'NORMAL DEPTH — nothing scary');
+  s+='</g>';
+  s+='<g transform="translate(206,0)">';
+  s+=rect('box',6,6,190,150,8);
+  s+=los(96,10,190);
+  s+=circleTxt('pl-def',60,72,9,'DE'); s+=circleTxt('pl-def',140,72,9,'DE');
+  s+=circleTxt('pl-def',100,92,9,'LB');
+  s+=circleTxt('pl-def2',40,60,8,'S');
+  s+=circleTxt('pl-def2',170,40,8,'S');
+  s+=arrow('weak',40,60,60,85);
+  s+=txt('flowsub',100,140,'BLITZ TELL — LB creeps up, S walks down');
+  s+='</g>';
+  return svgWrap('402 160',s,'Blitz recognition, every snap: does the front look normal, or does it look "scary" &mdash; extra bodies creeping to the line, a safety walking down into the box?');
+}
+
+function diagProtection(slideRight){
+  var s=rect('box',6,6,388,150,10);
+  s+=los(96);
+  var xs=[110,150,190,230,270];
+  for(var i=0;i<5;i++) s+=circleTxt('pl-off',xs[i],120,11,['LT','LG','C','RG','RT'][i]);
+  s+=circleTxt('pl-off',190,155,11,'QB');
+  s+=circleTxt('pl-off',150,155,10,'RB');
+  s+=circleTxt('pl-def',90,70,9,'DE'); s+=circleTxt('pl-def',150,70,9,'DT'); s+=circleTxt('pl-def',230,70,9,'DT'); s+=circleTxt('pl-def',290,70,9,'DE');
+  s+=circleTxt('pl-def',330,55,9,'BLITZ');
+  if(slideRight){
+    s+=arrow('route',190,120,250,120);
+    s+=txt('flowsub',200,25,'HALF-SLIDE RIGHT — line shifts protection toward the extra rusher');
+  } else {
+    s+=circleTxt('pl-off',270,155,10,'RB');
+    s+=txt('flowsub',200,25,'MAX PROTECT — RB & TE both stay in to block, only 2&ndash;3 receivers run routes');
+  }
+  return svgWrap('400 190',s, slideRight ? 'Sliding protection toward the pressure side picks up the extra rusher without using an extra blocker.' : 'Max protect keeps the back and tight end in, buying time at the cost of routes in the pattern.');
+}
+
+function routeConcept(kind){
+  var s=rect('box',6,6,388,220,10);
+  s+=los(160);
+  if(kind==='mesh'){
+    s+=coverageShellFaint();
+    s+=circleTxt('pl-def2',110,120,9,'CB'); s+=circleTxt('pl-def2',270,120,9,'CB');
+    s+=circleTxt('pl-def',150,110,9,'LB'); s+=circleTxt('pl-def',230,110,9,'LB');
+    s+=circleTxt('pl-off',110,170,9,'X');
+    s+=circleTxt('pl-off',270,170,9,'Z');
+    s+='<path class="route" d="M110,170 C160,150 220,150 270,150"></path>';
+    s+='<path class="route" d="M270,170 C220,150 160,150 110,152"></path>';
+    s+=txt('flowsub',200,20,'MESH — two shallow crossers rub off man defenders at the same depth');
+  } else if(kind==='verts'){
+    s+=coverageShellFaint();
+    s+=circleTxt('pl-def2',90,40,9,'S'); s+=circleTxt('pl-def2',310,40,9,'S'); s+=circleTxt('pl-def2',200,35,9,'FS');
+    s+=circleTxt('pl-off',60,170,9,'X'); s+=circleTxt('pl-off',330,170,9,'Z'); s+=circleTxt('pl-off',150,175,9,'H'); s+=circleTxt('pl-off',250,175,9,'Y');
+    s+=line('route',60,170,70,40); s+=line('route',330,170,320,40); s+=line('route',150,175,160,50); s+=line('route',250,175,240,50);
+    s+=txt('flowsub',200,20,'FOUR VERTICALS — 3 deep defenders can\'t cover 4 vertical routes; find the numbers mismatch');
+  } else if(kind==='smash'){
+    s+=coverageShellFaint();
+    s+=circleTxt('pl-def2',70,45,9,'S'); s+=circleTxt('pl-def2',60,130,9,'C — flat');
+    s+=circleTxt('pl-off',70,170,9,'X'); s+=circleTxt('pl-off',40,175,9,'Z');
+    s+='<path class="route" d="M40,175 L60,140"></path>';
+    s+='<path class="route" d="M70,170 C70,120 70,90 120,60"></path>';
+    s+=txt('flowsub',200,20,'SMASH — hitch underneath holds the corner low, corner route works over the top of him');
+  } else if(kind==='dagger'){
+    s+=coverageShellFaint();
+    s+=circleTxt('pl-def2',200,35,9,'FS');
+    s+=circleTxt('pl-off',330,170,9,'Z'); s+=circleTxt('pl-off',250,175,9,'Y'); s+=circleTxt('pl-off',110,170,9,'X');
+    s+='<path class="route" d="M330,170 C300,120 280,90 220,60"></path>';
+    s+='<path class="route" d="M250,175 C250,130 220,110 190,100"></path>';
+    s+='<path class="route" d="M110,170 C120,140 140,120 160,100"></path>';
+    s+=txt('flowsub',200,20,'DAGGER — post clears the safety, dig sits behind it; works vs man and zone alike');
+  }
+  return svgWrap('400 240',s,'');
+}
+function coverageShellFaint(){
+  return poly('zonefill','10,150 390,150 390,30 10,30');
+}
+function diagRouteConcept(kind,label){
+  return svgWrap('400 240', routeConceptInner(kind), label);
+}
+function routeConceptInner(kind){
+  var full = routeConcept(kind);
+  var m = full.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+  return m ? m[1] : '';
+}
+
+function diagRotation(){
+  var s='<g transform="translate(0,0)">';
+  s+=rect('box',6,6,190,150,8);
+  s+=los(96,10,190);
+  s+=circleTxt('pl-def2',60,40,9,'S'); s+=circleTxt('pl-def2',140,40,9,'S');
+  s+=txt('flowsub',100,140,'PRE-SNAP: shows Cover 2');
+  s+='</g>';
+  s+=arrow('flowline',196,80,206,80);
+  s+='<g transform="translate(212,0)">';
+  s+=rect('box',6,6,190,150,8);
+  s+=los(96,10,190);
+  s+=circleTxt('pl-def2',100,30,9,'FS');
+  s+=circleTxt('pl-def',60,55,8,'S/LB');
+  s+=arrow('weak',60,42,60,55);
+  s+=txt('flowsub',100,140,'POST-SNAP: rotates to Cover 3');
+  s+='</g>';
+  return svgWrap('408 160',s,'Disguise: a two-high shell can roll one safety down after the snap to play something completely different. Confirm with your eyes as you drop, don\'t just trust the pre-snap picture.');
+}
+
+/* ============================== QUESTION BANK ============================== */
+/* [id, level(1-5), topic, question, [choices], correctIndex, explanation] */
+var BANK = [
+["p1",1,"Personnel","In 11 personnel, how many tight ends are on the field?",["0","1","2","Can't tell"],1,"The second digit is tight ends. 11 personnel = 1 RB, 1 TE, and by subtraction 3 WR."],
+["p2",1,"Personnel","12 personnel means:",["1 RB, 2 TE, 2 WR","2 RB, 1 TE, 2 WR","1 RB, 2 WR, 2 TE only, no FB","2 RB, 2 TE, 1 WR"],0,"First digit = RBs, second digit = TEs. 12 = 1 RB, 2 TE, leaving 2 WR from the 5 skill spots."],
+["p3",1,"Personnel","Which grouping is almost always a run call, common on the goal line?",["10 personnel","11 personnel","22 personnel","00 personnel"],2,"22 personnel (2 RB, 2 TE, 1 WR) is heavy and pass-diminished — teams use it in short yardage and the red zone."],
+["p4",1,"Basics","On offense, who is always eligible to catch a pass along with the WRs and TEs?",["The center","The running back and quarterback (if he's not the passer)","Any lineman who reports eligible","No one else"],1,"RBs and TEs are eligible receivers by default; linemen need to report as eligible to be legal targets."],
+["p5",1,"Basics","What's the first thing to check in the pre-snap routine?",["The play clock","The safeties","The down marker","The kicker"],1,"Safety count is step one — it tells you which coverage family you're most likely facing."],
+["p6",1,"Basics","A '10 personnel' set on offense means how many receivers are out wide (max)?",["2","3","4","5"],2,"10 personnel = 1 RB, 0 TE, so the remaining 4 skill spots are wide receivers."],
+["p7",2,"Coverage","Two safeties aligned deep before the snap most often points toward which coverage family?",["Cover 0 / Cover 1","Cover 2 / Cover 4 / Cover 6","Always Cover 3","It tells you nothing"],1,"A two-high shell is the pre-snap tell for the split-safety coverages: Cover 2, Cover 4 (quarters), and Cover 6."],
+["p8",2,"Coverage","What's the defining trait of Cover 0?",["One deep safety, man underneath","Zero deep defenders, man coverage everywhere, extra rusher free","Two deep halves","Three deep thirds"],1,"Cover 0 has no deep help at all — everyone is locked in man, which frees up an extra pass rusher."],
+["p9",2,"Coverage","In Cover 1, what does the free defender (not in man) usually do?",["Rushes the passer every time","Plays a robber/hole zone in the intermediate middle","Lines up at receiver","Nothing — he's a spectator"],1,"Cover 1's extra safety often 'robs' the middle of the field, jumping in-breaking routes like digs and crossers."],
+["p10",2,"Coverage","Cover 2's most commonly cited weak spot is:",["The flats","The deep middle seam / 'hole' between the two safeties","The goal line","The RB's route"],1,"With two safeties splitting halves, there's a soft window in the deep middle between them, plus the deep sideline behind a low corner."],
+["p11",2,"Coverage","Cover 3 uses how many deep defenders, and how are they arranged?",["2 defenders in halves","3 defenders in deep thirds","4 defenders in quarters","1 defender only"],1,"Cover 3 splits the deep field into thirds — usually both corners plus the free safety."],
+["p12",2,"Coverage","A cornerback lined up 6-8 yards off the receiver, eyes on the quarterback, is showing:",["Press technique, likely man","Off technique, likely zone","A blitz","Nothing meaningful"],1,"Off alignment with eyes on the QB (not the receiver) is a classic zone tell."],
+["p13",2,"Coverage","You send a receiver in motion across the formation. A defender mirrors him step for step. What does that usually confirm?",["Zone coverage","Man coverage","A blitz","Cover 4"],1,"If a defender follows the man in motion across the formation, that's the standard test for man coverage."],
+["p14",2,"Coverage","Four verticals is a designed answer against which coverage's structural weakness?",["Cover 3 (only 3 deep defenders for 4 vertical routes)","Cover 0","Man coverage only","It doesn't beat any coverage"],0,"Cover 3 has exactly three deep defenders; sending four receivers vertically creates a numbers problem it can't solve."],
+["p15",3,"Blitz/Box","A box count of 8 or more defenders near the line of scrimmage usually signals:",["A light box, pass is favored","A loaded box, defense is committed to stopping the run","An automatic blitz","Nothing — box count doesn't matter"],1,"8+ in the box is 'loaded' — the defense is selling out against the run, which can open up throwing lanes."],
+["p16",3,"Blitz/Box","A box count of 6 or fewer is called:",["A loaded box","A neutral box","A light box — defense is playing pass-first","An illegal formation"],2,"6 or fewer defenders near the box is light — good news for the run, but often a pass-oriented defensive call."],
+["p17",3,"Blitz/Box","Which is the clearest pre-snap blitz tell?",["A cornerback backpedaling 8 yards","A linebacker creeping to the line and a safety walking down","A receiver in motion","The QB under center"],1,"Extra bodies crowding the line right before the snap — LB creep, S walk-down — is the classic 'it looks scary' blitz tell."],
+["p18",3,"Blitz/Box","What does 'max protect' mean in pass protection?",["All 5 linemen block, plus the RB and/or TE stay in, at the cost of fewer routes","Every eligible receiver runs a route","The QB scrambles immediately","Linemen pull to the strong side"],0,"Max protect adds extra blockers (RB/TE) beyond the offensive line, trading pass-catchers for protection."],
+["p19",3,"Blitz/Box","Half-slide protection is best used when:",["You expect zero pressure","You've identified extra pressure clearly coming from one side","On every single play regardless of the look","Only on running plays"],1,"Slide the line toward the side showing the extra rusher; sliding blind (or too often) leaves the backside light."],
+["p20",3,"Blitz/Box","What's a hot route, in plain terms?",["A route only run in the red zone","A pre-snap adjustment that shortens a receiver's route so the ball comes out before pressure arrives","A route that can only go deep","A defensive adjustment"],1,"Hot routes convert a longer-developing route into a quick option — a slant, hitch, or flat — as an answer to pressure."],
+["p21",3,"Blitz/Box","If you correctly read 'no blitz coming,' what's usually the smart adjustment for your running back on a pass play?",["Keep him in to block regardless","Release him into a route since there's no extra rusher to pick up","Take him off the field","Motion him to receiver every time"],1,"With no blitz, there's no reason to burn a blocker — release the back and get an extra weapon into the route."],
+["p22",4,"Advanced","Cover 4 (quarters) divides the deep field into how many zones, and what's the modern twist most defenses add?",["4 zones; it's spot-drop only, no adjustments","4 zones; most defenses now pattern-match rather than pure spot-drop","2 zones; it's identical to Cover 2","4 zones, but only 2 defenders are ever deep"],1,"Modern Cover 4 is almost always pattern-match ('match quarters') — corners and safeties convert to man once a receiver's route declares vertical."],
+["p23",4,"Advanced","In pattern-match Cover 4, what typically happens if the #2 receiver (slot) runs a shallow route instead of vertical?",["The safety is freed to drive downhill on the run or an underneath route","The safety must still bail deep no matter what","The corner takes over the #2 receiver automatically","Nothing changes"],0,"The safety's rule is usually to match #2 if he goes vertical; if #2 breaks short, the safety is released to help elsewhere."],
+["p24",4,"Advanced","Cover 6 is best described as:",["Six defenders deep","Cover 2 to one side of the field and Cover 4 to the other, in the same defense","A blitz package","Only used in the red zone"],1,"Cover 6 splits the field: Cover 2 rules on one side (often the boundary), Cover 4/quarters rules on the other (often the field)."],
+["p25",4,"Advanced","The 'Rip/Liz' calls associated with modern match-coverage systems tell the secondary:",["Which side to blitz from","Which side the coverage rotates and matches toward out of a quarters shell","The snap count","Nothing defensive at all"],1,"Rip and Liz are rotation calls from pattern-match ('Cover 7') systems, telling the defense which side gets help and which matches man rules."],
+["p26",4,"Advanced","Mesh (two shallow crossing routes at the same depth) is primarily designed to beat:",["Zone coverage only","Man coverage, by creating a natural rub/pick at the crossing point","Cover 4 exclusively","Nothing — it's a running back drill"],1,"Two receivers crossing at the same depth create traffic that trips up man defenders trailing across the formation."],
+["p27",4,"Advanced","Dagger (a post to clear the safety with a dig sitting underneath it) is popular because:",["It only works against blitzes","It's effective versus both man and zone coverage","It requires no protection","It's illegal in most leagues"],1,"Dagger stresses the safety vertically while the dig sits in the void behind him — a strong answer to man and zone alike."],
+["p28",4,"Advanced","The two classic ways offenses beat Cover 4 (quarters) are:",["Only running the ball","Double posts and shallow-cross concepts that occupy both safeties","Kneeling on 3rd down","Only throwing screens"],1,"Manipulating both safeties with double posts, or working underneath with shallow concepts, are the standard Cover 4 answers."],
+["p29",5,"Game Day","In a two-high shell that rolls one safety down after the snap into a single-high look, what's actually happening?",["A busted coverage every time","Disguise — the defense showed one picture pre-snap and rotated into another post-snap","An injury substitution","A penalty"],1,"Disguised coverage: a defense can show Cover 2 and rotate into Cover 3 (or Cover 1 with a blitzer) right at the snap."],
+["p30",5,"Game Day","What should you do when your pre-snap read turns out to be wrong after the ball is snapped?",["Panic and throw it away immediately","Trust your post-snap confirmation and go to your backup/checkdown read","Ignore it and force the original read anyway","Take a knee"],1,"Good process includes a backup plan: confirm post-snap, and if the picture changed, go to the checkdown or secondary read."],
+["p31",5,"Game Day","On 3rd-and-long, defenses are generally more likely to:",["Load the box for run support","Play more conservative zone shells and defend the sticks","Never blitz","Play only Cover 0"],1,"Long yardage situations tilt defenses toward pass-safe zone shells and protecting the first-down marker rather than crowding the box."],
+["p32",5,"Game Day","In Madden 27 / CFB 27, the button/stick input most associated with quickly adjusting your offensive line's slide protection is:",["The right stick, flicked toward the slide direction","The D-pad up","Holding the sprint button","The right bumper only"],0,"Recent Madden/CFB titles map quick half-slide/full-slide protection changes to flicking the right stick left or right."],
+["p33",5,"Game Day","Holding the left trigger/L2 in recent Madden titles typically opens:",["The kicking meter","The global coverage adjustment hub (press, shade, over-top help, leverage)","The instant replay menu","Nothing on defense"],1,"Madden 27's Global Coverage Adjustment hub — press/off, shading, leverage, help — is opened by holding LT/L2."],
+["p34",5,"Game Day","If you show 'no blitz' pre-snap as the defense, but you're actually bringing 6, what's the offense's biggest vulnerability?",["Nothing changes for them","Their protection call and hot routes were set for fewer rushers than are actually coming","They'll always complete the pass","The play clock resets"],1,"An offense that reads 'clean pocket' and releases extra receivers into routes has fewer blockers left if real pressure shows up disguised."],
+["p35",5,"Game Day","What's the main risk of showing blitz with everyone, then dropping most of it into a zone blitz look?",["None — it's a completely safe call every time","It can confuse protection calls, but if the disguised rushers don't get home, the coverage behind it may be thinner than normal","It's not allowed by league rules","It guarantees a sack"],1,"Zone blitz pressure disguises who's rushing and who's dropping, but if home the pressure whiffs, the defense often has fewer true coverage defenders than a standard call."],
+["p36",1,"Basics","Which position is responsible for snapping the ball to the quarterback?",["Guard","Center","Tackle","Tight End"],1,"The center snaps the ball and anchors the middle of the offensive line."],
+["p37",2,"Coverage","A cornerback who bails deep immediately at the snap, even though he showed press pre-snap, might be a sign of:",["A busted play","Disguised zone (Cover 3) hiding behind a press look","An injury","A false start"],1,"Some defenses press pre-snap then bail into deep-third zone responsibilities — a disguise technique."],
+["p38",3,"Blitz/Box","'Identifying the Mike' before the snap is done so that:",["The kicker knows where to aim","The offensive line and running back know who the extra protection priority is if he blitzes","The QB can call a timeout","It has no real purpose"],1,"ID'ing the Mike linebacker sets the protection's point of reference — who gets picked up first if he comes."],
+["p39",4,"Advanced","'MEG' in match-coverage terminology stands for:",["Man Everywhere he Goes — true man on a specific receiver within a zone-match shell","Middle End Gap, a run-fit term only","A trick play name","Motion Eligibility Guideline"],0,"MEG calls assign a defender true man coverage on one receiver, layered inside an otherwise zone-match defense."],
+["p40",5,"Game Day","What's the practical takeaway of 'don't force the deep ball just because you want a touchdown' against a patient zone shell like Cover 4?",["Take the short, open throw first and make the defense earn the stop","Always throw deep regardless of coverage","Never throw underneath","Take a sack instead"],0,"Patient shells like Cover 4 are beaten by stacking easy completions until the defense is forced to adjust and opens something bigger."]
+];
+
+/* ============================== LESSON CONTENT ============================== */
+var LEVELS = [
+{
+  key:'rookie', num:'01', name:'Rookie', title:'Foundations',
+  blurb:'Start here even if you already play. Formations, personnel numbers, and the four-step routine every good QB repeats before every snap.',
+  lessons:[
+    { title:'The Field & The Snap', topic:'Pre-Snap Basics',
+      body:'<p>Offense lines up in the base structure below: five linemen, a QB, and whatever mix of RB/TE/WR the play calls for. Defense mirrors it with a front (the DL and LBs, in red) and a secondary (CBs and safeties, in blue). Everything you learn from here on is about reading how that secondary is arranged <em>before</em> the ball is snapped.</p>',
+      diagram:diagFormationBasics(),
+      quiz:['p4','p36']
+    },
+    { title:'Personnel Groupings', topic:'Reading the Huddle',
+      body:'<p>Before the snap, count backs and tight ends &mdash; that\'s all the personnel number tells you. First digit is running backs, second digit is tight ends, and whatever\'s left of the five skill spots is receivers. 11 personnel (1 RB, 1 TE, 3 WR) is the league\'s bread and butter because it can run or pass without tipping its hand.</p>',
+      diagram:diagPersonnel(),
+      quiz:['p1','p2','p3','p6']
+    },
+    { title:'The Pre-Snap Routine', topic:'Process',
+      body:'<p>Every rep, every snap, run the same four-step scan. It becomes automatic with reps, and it\'s the spine of everything in this guide &mdash; Starter through Legend just adds detail to each step.</p>',
+      diagram:diagPresnapFlow(),
+      quiz:['p5']
+    }
+  ]
+},
+{
+  key:'starter', num:'02', name:'Starter', title:'Reading Coverage',
+  blurb:'Turn step 1 of the routine into real answers. Count the safeties, know the shell, and start recognizing man versus zone before contact.',
+  lessons:[
+    { title:'Safety Count: One-High vs. Two-High', topic:'Coverage Shells',
+      body:'<p>This is the single fastest read in football. Two safeties deep before the snap funnels you toward Cover 2, Cover 4, or Cover 6. One safety deep funnels you toward Cover 0, Cover 1, or Cover 3. It\'s not a guarantee &mdash; defenses disguise this &mdash; but it\'s always your starting point.</p>',
+      diagram:diagSafetyCount(),
+      quiz:['p7']
+    },
+    { title:'Cover 0 & Cover 1 — The Man Family', topic:'Man Coverage',
+      body:'<p>Cover 0 has zero deep help: everyone is on an island in man, which frees up a extra rusher for the blitz. Cover 1 keeps one deep defender in the middle and turns the other safety loose as a "robber," who reads the quarterback\'s eyes and jumps in-breaking routes like digs and crossers instead of covering a man.</p>',
+      diagram:diagCoverage('c0','Cover 0 — zero deep safeties, full man coverage, extra rusher free.')+diagCoverage('c1','Cover 1 — one deep safety, man underneath, a free robber in the middle.'),
+      quiz:['p8','p9']
+    },
+    { title:'Cover 2 & Cover 3 — The Zone Family', topic:'Zone Coverage',
+      body:'<p>Cover 2 splits the deep field into two halves and drops the corners into the flats — its soft spot is the deep middle "hole" between the safeties and the sideline behind a low corner. Cover 3 keeps one deep safety and splits the field into three deep thirds with the corners; its structural weakness is the seams, which is exactly why four verticals is such a common answer to it.</p>',
+      diagram:diagCoverage('c2','Cover 2 — two deep halves, corners in the flat, weak spot marked in the deep middle.')+diagCoverage('c3','Cover 3 — one deep safety plus corners splitting deep thirds, weak spot marked in the seam.'),
+      quiz:['p10','p11','p14']
+    },
+    { title:'Corner Alignment & Motion', topic:'Confirming the Read',
+      body:'<p>Corner depth is a tell all by itself: press and tight usually means man or aggressive zone; off with 6&ndash;8 yards of cushion, eyes on the quarterback, usually means zone. Sending a receiver in motion is a cheap way to force the issue &mdash; if a defender follows him across the formation, you\'ve very likely confirmed man.</p>',
+      diagram:diagPressOff(),
+      quiz:['p12','p13']
+    }
+  ]
+},
+{
+  key:'varsity', num:'03', name:'Varsity', title:'Fronts, Blitz & Protection',
+  blurb:'Now add the run/pass math and the pressure picture. Box count, blitz tells, protection calls, and hot routes turn reads into decisions.',
+  lessons:[
+    { title:'Box Count', topic:'Run/Pass Math',
+      body:'<p>Count bodies within a few yards of the line of scrimmage. Six or fewer is a light box &mdash; good news if you want to run, but often a sign the defense is thinking pass. Eight or more is a loaded box, committed against the run, which can open throwing lanes elsewhere. Seven is neutral.</p>',
+      diagram:diagBoxCount(),
+      quiz:['p15','p16']
+    },
+    { title:'Blitz Tells', topic:'Pressure Recognition',
+      body:'<p>Ask one question every snap: does the front look normal, or does it look "scary"? Extra bodies creeping toward the line, a linebacker mugging a gap, a safety walking down into the box &mdash; those are the tells. Distance matters too: a defender ten yards back showing blitz is a lot less urgent than an edge rusher already crowding the tackle.</p>',
+      diagram:diagBlitzTell(),
+      quiz:['p17']
+    },
+    { title:'Pass Protection', topic:'Protecting the Pocket',
+      body:'<p>Base protection accounts for the four down linemen and works out from there. Slide protection shifts the whole line (or half of it) toward a side showing extra pressure. Max protect keeps the running back and/or tight end in as extra blockers, trading pass-catchers for time. Use slides when you\'ve actually identified where pressure is coming from &mdash; sliding blind just moves the weak spot instead of fixing it.</p>',
+      diagram:diagProtection(true)+diagProtection(false),
+      quiz:['p18','p19','p38']
+    },
+    { title:'Hot Routes & the Blitz Answer', topic:'Beating Pressure',
+      body:'<p>A hot route shortens a receiver\'s route so the ball can come out before pressure arrives &mdash; think a nine-route converting to a quick slant. The decision is simple: no blitz shows, release your back into a route since there\'s no extra rusher to worry about; blitz shows, keep him in to help protect, or throw hot before the rush gets home.</p><div class="note"><b>Game controls</b>In Madden 27 / CFB 27, hot routes live on Y/Triangle (pick the receiver, then the new route), audibles on X/Square, and quick protection slides are a flick of the right stick left or right &mdash; faster than digging through a menu once pressure is already coming.</div>',
+      diagram:'',
+      quiz:['p20','p21']
+    }
+  ]
+},
+{
+  key:'allpro', num:'04', name:'All-Pro', title:'Coverage Family & Beaters',
+  blurb:'The coverages that actually show up at higher difficulties, plus the route concepts built specifically to attack each one.',
+  lessons:[
+    { title:'Cover 4 (Quarters)', topic:'Pattern-Match Coverage',
+      body:'<p>Cover 4 splits the deep field into four quarters between two safeties and two corners. Almost nobody plays true spot-drop quarters anymore &mdash; the modern version is <em>pattern-match</em>: the corner matches the #1 receiver man-to-man if he releases vertical, and the safety matches #2 the same way. If either receiver breaks short instead, that defender is freed to help elsewhere, often against the run.</p>',
+      diagram:diagCoverage('c4','Cover 4 (quarters) — four deep zones with pattern-match rules on #1 and #2.'),
+      quiz:['p22','p23']
+    },
+    { title:'Cover 6 & Match Concepts', topic:'Split-Field Coverage',
+      body:'<p>Cover 6 is a hybrid: Cover 2 rules to one side of the field, Cover 4 rules to the other, inside the same defensive call. Systems built off Nick Saban\'s coaching tree (often labeled Cover 7) add rotation calls like Rip and Liz that tell the secondary which side gets help, plus MEG (man everywhere he goes) calls that lock a defender onto one receiver inside an otherwise zone shell.</p>',
+      diagram:diagCoverage('c6','Cover 6 — Cover 2 to one side of the field, Cover 4 to the other.'),
+      quiz:['p24','p25','p39']
+    },
+    { title:'Concepts That Beat Man', topic:'Route Concepts',
+      body:'<p>Mesh sends two receivers on shallow crossing routes at the same depth &mdash; the natural traffic at the crossing point rubs off man defenders trailing across the formation. It\'s one of the most reliable man-beaters at every level of football.</p>',
+      diagram:diagRouteConcept('mesh','Mesh — two shallow crossers at the same depth, built to rub off man coverage.'),
+      quiz:['p26']
+    },
+    { title:'Concepts That Beat Zone', topic:'Route Concepts',
+      body:'<p>Four verticals attacks Cover 3\'s structural math problem: three deep defenders can\'t cover four vertical routes. Smash attacks Cover 2 by holding the flat corner low with a hitch, then working a corner route over the top of him. Dagger &mdash; a post clearing the safety with a dig sitting underneath &mdash; works against man <em>and</em> zone, which is why it shows up in nearly every modern playbook.</p>',
+      diagram:diagRouteConcept('verts','Four Verticals — a Cover 3 beater built on numbers, not tricks.')+diagRouteConcept('smash','Smash — hitch and corner route combo that beats Cover 2.')+diagRouteConcept('dagger','Dagger — post clears the safety, dig sits behind him. Beats man and zone.'),
+      quiz:['p14','p27','p28']
+    }
+  ]
+},
+{
+  key:'legend', num:'05', name:'Legend', title:'Game Day Mastery',
+  blurb:'Tie it all together: the full checklist, disguised coverage, situational football, and the exact buttons that execute all of it.',
+  lessons:[
+    { title:'Disguise & Post-Snap Confirmation', topic:'Advanced Recognition',
+      body:'<p>Good defenses don\'t show you the truth pre-snap. A two-high shell can roll one safety down into a single-high look the instant the ball is snapped &mdash; showing Cover 2, playing Cover 3. Your pre-snap read is a hypothesis, not a fact. Confirm it with your eyes as you drop or as your route stems, and have a checkdown ready if the picture changes.</p>',
+      diagram:diagRotation(),
+      quiz:['p29','p30','p37']
+    },
+    { title:'Situational Football', topic:'Down & Distance',
+      body:'<ul><li><b>3rd &amp; long:</b> expect conservative zone, sticks-protecting coverage &mdash; defenses would rather concede the check-down than the first down deep.</li><li><b>Loaded box, light personnel:</b> a run call into a loaded box is asking for a stuffed play &mdash; take the free access to the pass instead.</li><li><b>No blitz shown, clean box count:</b> release extra receivers, this is the down to push the ball downfield.</li><li><b>Red zone:</b> the field compresses &mdash; deep shells lose their advantage, expect tighter, more aggressive man coverage.</li></ul>',
+      diagram:'',
+      quiz:['p31']
+    },
+    { title:'Game Controls Cheat Sheet', topic:'Madden 27 / CFB 27',
+      body:'<div class="note"><b>Offense</b>Hot routes: Y/Triangle → pick receiver → new route. Audibles: X/Square. Pass protection quick-adjust: flick the right stick toward the slide direction; double-tap for a full slide. Max protect and route-based hot answers live in the same pre-play menu.</div><div class="note"><b>Defense</b>Global coverage adjustments (press, shade, leverage, help over the top): hold LT/L2. D-line alignment, slants and stunts: right stick left. Linebacker blitz/zone/show-blitz: right stick right. Custom Adjustments let you save a whole package of these as one macro for instant recall.</div>',
+      diagram:'',
+      quiz:['p32','p33']
+    },
+    { title:'Putting It All Together', topic:'Full Process',
+      body:'<p>Every snap, same four steps, now with everything underneath them: count the safeties (shell family) → count the box (run/pass leaning + blitz risk) → check corner depth and send motion if you have time (man/zone confirm) → pick your answer (hot route, protection slide, or audible) → confirm post-snap as you drop or as the route develops, and go to your backup read if the disguise changes the picture.</p>',
+      diagram:diagPresnapFlow(),
+      quiz:['p34','p35','p40']
+    }
+  ]
+}
+];
+
+/* ============================== STATE ============================== */
+var STORAGE_KEY = 'fieldgeneral_v1';
+var state = { iq:50, difficulty:1, streak:0, correct:0, wrong:0, answered:{}, activeLevel:0 };
+function loadState(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ var parsed = JSON.parse(raw); for(var k in parsed){ state[k]=parsed[k]; } }
+  }catch(e){}
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+loadState();
+
+var BANK_BY_ID = {};
+BANK.forEach(function(row){
+  BANK_BY_ID[row[0]] = { id:row[0], level:row[1], topic:row[2], q:row[3], choices:row[4], correct:row[5], explain:row[6] };
+});
+
+/* ============================== RENDER ============================== */
+var tabsEl = document.getElementById('tabs');
+var hostEl = document.getElementById('levelHost');
+
+function levelProgress(li){
+  var lvl = LEVELS[li];
+  var total=0, done=0;
+  lvl.lessons.forEach(function(les){
+    les.quiz.forEach(function(qid){ total++; if(state.answered[qid]) done++; });
+  });
+  return total ? done/total : 0;
+}
+
+function renderTabs(){
+  tabsEl.innerHTML = '';
+  LEVELS.forEach(function(lvl,i){
+    var btn = document.createElement('button');
+    btn.className='tab'; btn.setAttribute('role','tab');
+    btn.setAttribute('aria-selected', i===state.activeLevel ? 'true':'false');
+    var prog = levelProgress(i);
+    var ring = document.createElement('span');
+    ring.className = 'ring' + (prog>=1 ? ' done':'');
+    var num = document.createElement('span'); num.className='n'; num.textContent=lvl.num;
+    var lab = document.createElement('span'); lab.textContent=lvl.name;
+    btn.appendChild(ring); btn.appendChild(num); btn.appendChild(lab);
+    btn.addEventListener('click', function(){ state.activeLevel=i; saveState(); renderTabs(); renderLevel(); window.scrollTo({top:0,behavior:'smooth'}); });
+    tabsEl.appendChild(btn);
+  });
+}
+
+function renderLevel(){
+  var lvl = LEVELS[state.activeLevel];
+  var html = '';
+  html += '<div class="level-head"><p class="lbl eyebrow">Level '+lvl.num+' &middot; '+lvl.name+'</p><h2>'+esc(lvl.title)+'</h2><p>'+esc(lvl.blurb)+'</p></div>';
+  lvl.lessons.forEach(function(les,idx){
+    html += '<article class="card">';
+    html += '<p class="lbl topic">'+esc(les.topic)+'</p>';
+    html += '<h3>'+esc(les.title)+'</h3>';
+    html += les.body;
+    if(les.diagram) html += les.diagram;
+    html += renderCheckpoint(lvl.key+'-'+idx, les.quiz);
+    html += '</article>';
+  });
+  hostEl.innerHTML = html;
+  wireCheckpoints();
+}
+
+function renderCheckpoint(cpid, qids){
+  var h = '<div class="checkpoint" data-cp="'+cpid+'">';
+  h += '<div class="cp-head"><span class="lbl">Checkpoint</span></div>';
+  h += '<div class="cp-list">';
+  qids.forEach(function(qid,i){
+    var Q = BANK_BY_ID[qid];
+    h += '<div class="cp-item" data-qid="'+qid+'" '+(i>0?'hidden':'')+'>';
+    h += '<p class="cp-q">'+esc(Q.q)+'</p>';
+    h += '<div class="cp-choices">';
+    Q.choices.forEach(function(c,ci){
+      h += '<button type="button" class="cp-choice" data-ci="'+ci+'">'+esc(c)+'</button>';
+    });
+    h += '</div><div class="cp-fb"></div></div>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+function wireCheckpoints(){
+  document.querySelectorAll('.checkpoint').forEach(function(cp){
+    var items = cp.querySelectorAll('.cp-item');
+    items.forEach(function(item,i){
+      var qid = item.getAttribute('data-qid');
+      var Q = BANK_BY_ID[qid];
+      var choices = item.querySelectorAll('.cp-choice');
+      var fb = item.querySelector('.cp-fb');
+      if(state.answered[qid]){
+        choices.forEach(function(btn,ci){ btn.disabled=true; if(ci===Q.correct) btn.classList.add('correct'); });
+      }
+      choices.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if(item.dataset.locked) return;
+          item.dataset.locked='1';
+          var ci = parseInt(btn.getAttribute('data-ci'),10);
+          var ok = ci===Q.correct;
+          choices.forEach(function(b,bi){ b.disabled=true; if(bi===Q.correct) b.classList.add('correct'); });
+          if(!ok) btn.classList.add('wrong');
+          fb.classList.add('show');
+          fb.innerHTML = '<b>'+(ok?'Correct.':'Not quite.')+'</b>'+esc(Q.explain);
+          recordAnswer(qid, ok);
+          var next = item.nextElementSibling;
+          if(next && next.classList.contains('cp-item')){
+            setTimeout(function(){ next.hidden=false; },350);
+          }
+        });
+      });
+    });
+  });
+}
+
+function recordAnswer(qid, correct){
+  var already = state.answered.hasOwnProperty(qid);
+  state.answered[qid] = correct ? true : (state.answered[qid]||false);
+  if(!already){
+    if(correct){
+      state.correct++; state.streak++;
+      state.iq += 8 + state.difficulty*2;
+      if(state.streak>=2 && state.difficulty<5){ state.difficulty++; state.streak=0; }
+    } else {
+      state.wrong++; state.streak=0;
+      state.iq = Math.max(0, state.iq-4);
+      if(state.difficulty>1) state.difficulty--;
+    }
+  } else if(correct && !state.answered[qid]){
+    state.answered[qid]=true;
+  }
+  saveState();
+  renderScorebug();
+  renderTabs();
+}
+
+function renderScorebug(){
+  document.getElementById('iqVal').textContent = state.iq;
+  document.getElementById('streakVal').textContent = state.streak;
+}
+
+/* ============================== ADAPTIVE POP QUIZ ============================== */
+var veil = document.getElementById('modalVeil');
+var modalBody = document.getElementById('modalBody');
+var diffRow = document.getElementById('diffRow');
+var currentPopId = null;
+
+function pickAdaptiveQuestion(){
+  var pool = BANK.filter(function(row){
+    return Math.abs(row[1]-state.difficulty) <= 1;
+  });
+  if(!pool.length) pool = BANK.slice();
+  var unseen = pool.filter(function(row){ return !state.answered[row[0]]; });
+  var use = unseen.length ? unseen : pool;
+  var pick = use[Math.floor(Math.random()*use.length)];
+  return BANK_BY_ID[pick[0]];
+}
+
+function renderDiffRow(){
+  diffRow.innerHTML='';
+  for(var i=1;i<=5;i++){
+    var d=document.createElement('span');
+    d.className='diff-dot'+(i<=state.difficulty?' on':'');
+    diffRow.appendChild(d);
+  }
+}
+
+function openPopQuiz(){
+  var Q = pickAdaptiveQuestion();
+  currentPopId = Q.id;
+  renderDiffRow();
+  var h = '<p class="lbl" style="color:var(--ink-dim);font-size:10px;margin:0 0 8px;">'+esc(Q.topic)+' &middot; IQ '+state.iq+'</p>';
+  h += '<p class="cp-q">'+esc(Q.q)+'</p>';
+  h += '<div class="cp-choices">';
+  Q.choices.forEach(function(c,ci){ h+='<button type="button" class="cp-choice" data-ci="'+ci+'">'+esc(c)+'</button>'; });
+  h += '</div><div class="cp-fb" id="popFb"></div>';
+  h += '<button type="button" class="cp-choice" id="popNext" style="margin-top:12px;display:none;border-color:var(--accent);">Next question &rarr;</button>';
+  modalBody.innerHTML = h;
+  veil.classList.add('open');
+  wirePopChoices(Q);
+}
+function wirePopChoices(Q){
+  var choices = modalBody.querySelectorAll('.cp-choice[data-ci]');
+  var fb = document.getElementById('popFb');
+  var next = document.getElementById('popNext');
+  var locked=false;
+  choices.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      if(locked) return; locked=true;
+      var ci=parseInt(btn.getAttribute('data-ci'),10);
+      var ok = ci===Q.correct;
+      choices.forEach(function(b,bi){ b.disabled=true; if(bi===Q.correct) b.classList.add('correct'); });
+      if(!ok) btn.classList.add('wrong');
+      fb.classList.add('show');
+      fb.innerHTML='<b>'+(ok?'Correct.':'Not quite.')+'</b>'+esc(Q.explain);
+      recordAnswer(Q.id, ok);
+      renderDiffRow();
+      next.style.display='block';
+    });
+  });
+  next.addEventListener('click', openPopQuiz);
+}
+document.getElementById('popBtn').addEventListener('click', openPopQuiz);
+document.getElementById('modalClose').addEventListener('click', function(){ veil.classList.remove('open'); });
+veil.addEventListener('click', function(e){ if(e.target===veil) veil.classList.remove('open'); });
+
+/* ============================== INIT ============================== */
+renderScorebug();
+renderTabs();
+renderLevel();
+
+})();
+</script>
