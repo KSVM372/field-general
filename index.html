@@ -555,6 +555,156 @@ function diagRotation(){
   return svgWrap('408 160',s,'Disguise: a two-high shell can roll one safety down after the snap to play something completely different. Confirm with your eyes as you drop, don\'t just trust the pre-snap picture.');
 }
 
+/* ============================== LIVE REPS: SCENARIO DATA MODEL ============================== */
+/* Phase 1 — formations, coverages, blitz packages, protections, hot routes, and the generator
+   that combines them into a fresh "rep" every time. No UI wiring yet (that's Phase 2). */
+
+var FORMATIONS = [
+  {id:"f1", personnel:"10", name:"Gun Empty Quads", rb:1, te:0, wr:4, strength:"right"},
+  {id:"f2", personnel:"10", name:"Gun Spread Doubles", rb:1, te:0, wr:4, strength:"left"},
+  {id:"f3", personnel:"11", name:"Gun Trips Right", rb:1, te:1, wr:3, strength:"right"},
+  {id:"f4", personnel:"11", name:"Gun Doubles", rb:1, te:1, wr:3, strength:"left"},
+  {id:"f5", personnel:"11", name:"Gun Trey Bunch", rb:1, te:1, wr:3, strength:"right"},
+  {id:"f6", personnel:"12", name:"Gun Tight Doubles", rb:1, te:2, wr:2, strength:"right"},
+  {id:"f7", personnel:"12", name:"Ace Pair", rb:1, te:2, wr:2, strength:"left"},
+  {id:"f8", personnel:"21", name:"I-Form Pro", rb:2, te:1, wr:2, strength:"right"},
+  {id:"f9", personnel:"21", name:"Singleback Offset", rb:2, te:1, wr:2, strength:"left"}
+];
+
+var COVERAGES = [
+  {kind:"c0", name:"Cover 0", safeties:0, notes:"No deep help. Everyone is locked in man, and that frees up an extra rusher."},
+  {kind:"c1", name:"Cover 1", safeties:1, notes:"One deep safety in the middle, man everywhere else, plus a free robber underneath."},
+  {kind:"c2", name:"Cover 2", safeties:2, notes:"Two deep halves, corners squat the flats. Weak spots are the deep sideline and the middle seam."},
+  {kind:"c3", name:"Cover 3", safeties:1, notes:"One deep safety plus corners splitting three deep thirds. Weak spots are the seams against four verticals."},
+  {kind:"c4", name:"Cover 4 (Quarters)", safeties:2, notes:"Four deep quarters. Corners match number one vertical, safeties match number two vertical."},
+  {kind:"c6", name:"Cover 6", safeties:2, notes:"Cover 2 to the field side, Cover 4 to the boundary side of the same defense."}
+];
+
+var BLITZ_PACKAGES = [
+  {id:"b0", name:"No Blitz (Four-Man Rush)", extra:null, tell:"Normal depth up front. Nothing scary before the snap.", pairsC:["c1","c2","c3","c4","c6"], loadedBox:false},
+  {id:"b1", name:"Double A-Gap", extra:"Both inside linebackers", tell:"Both inside linebackers creep into the A-gaps right before the snap.", pairsC:["c0","c1","c3"], loadedBox:true},
+  {id:"b2", name:"Zero Pressure", extra:"Weak-side linebacker", tell:"A safety walks all the way down into the box. No deep help left anywhere.", pairsC:["c0"], loadedBox:true},
+  {id:"b3", name:"Overload Weak", extra:"Weak-side safety off the edge", tell:"An extra defender stacks behind the weak-side edge rusher, overloading one side of the line.", pairsC:["c1","c3"], loadedBox:true},
+  {id:"b4", name:"Nickel Off the Slot", extra:"Slot cornerback (nickel)", tell:"The nickel defender lines up on the line of scrimmage over the slot receiver instead of sitting off in coverage.", pairsC:["c1","c4"], loadedBox:false},
+  {id:"b5", name:"Sam Fire Zone", extra:"Strong-side linebacker", tell:"The strong-side linebacker creeps to the edge while a defensive lineman drops into coverage behind him.", pairsC:["c3"], loadedBox:false}
+];
+
+var PROTECTIONS = [
+  {id:"p0", name:"Base Man Protection", beats:["b0"], desc:"Each lineman blocks the man lined up across from him. No help built in for a free rusher."},
+  {id:"p1", name:"Slide Strong", beats:["b1","b5"], desc:"The whole line shifts protection toward the strong side, picking up an extra rusher from that side."},
+  {id:"p2", name:"Slide Weak", beats:["b3"], desc:"The whole line shifts protection toward the weak side, picking up an extra rusher from that side."},
+  {id:"p3", name:"Max Protect", beats:["b2"], desc:"The running back and tight end both stay in to block, covering a free rusher at the cost of routes in the pattern."},
+  {id:"p4", name:"Check-Release", beats:["b4"], desc:"The running back checks for a blitzer first, then releases into his route if no one shows."}
+];
+
+var HOT_ROUTES = [
+  {id:"h0", name:"Hitch to the single receiver", beatsBlitz:["b1","b2"], beatsCoverage:["c0","c1"], desc:"A quick hitch gets the ball out before the free rusher arrives, right into the space man coverage leaves underneath."},
+  {id:"h1", name:"Slant from the slot", beatsBlitz:["b4"], beatsCoverage:["c1","c4"], desc:"Slanting away from the blitzing nickel back attacks the space he just vacated."},
+  {id:"h2", name:"Quick out to the boundary", beatsBlitz:["b3"], beatsCoverage:["c1","c3"], desc:"Breaking outside, away from the overload, beats zone defenders rotating toward the pressure."},
+  {id:"h3", name:"Stick route from the tight end", beatsBlitz:["b5"], beatsCoverage:["c3"], desc:"The tight end settling into the zone the blitzing linebacker just left is the sight adjustment."}
+];
+
+var SITUATIONS = [
+  {down:1, dist:10, hash:"middle"},
+  {down:2, dist:7, hash:"left"},
+  {down:2, dist:4, hash:"right"},
+  {down:3, dist:8, hash:"middle"},
+  {down:3, dist:3, hash:"left"},
+  {down:1, dist:10, hash:"right"}
+];
+
+function lrPick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function lrShuffle(arr){
+  var a = arr.slice();
+  for(var i=a.length-1;i>0;i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var t=a[i]; a[i]=a[j]; a[j]=t;
+  }
+  return a;
+}
+function lrById(list,id){
+  for(var i=0;i<list.length;i++){ if(list[i].id===id) return list[i]; }
+  return null;
+}
+function lrOrdinal(n){
+  var suf=["th","st","nd","rd"], v=n%100;
+  return n+(suf[(v-20)%10]||suf[v]||suf[0]);
+}
+
+var LR_HISTORY = [];
+function lrIsRepeat(key){ return LR_HISTORY.indexOf(key)!==-1; }
+function lrRemember(key){
+  LR_HISTORY.push(key);
+  if(LR_HISTORY.length>6) LR_HISTORY.shift();
+}
+
+/* level: 1-5, matches the site's existing difficulty scale.
+   forceType: optional "blitzID" | "protection" | "route" override. */
+function generateScenario(level, forceType){
+  level = level || 1;
+  var blitzChance = 0.25 + (level-1)*0.15; // 25% at level 1, up to 85% at level 5
+  var attempt, formation, coverage, blitz, situation, key;
+
+  for(attempt=0; attempt<20; attempt++){
+    formation = lrPick(FORMATIONS);
+    coverage = lrPick(COVERAGES);
+    situation = lrPick(SITUATIONS);
+    var candidates = BLITZ_PACKAGES.filter(function(b){ return b.id!=="b0" && b.pairsC.indexOf(coverage.kind)!==-1; });
+    var useBlitz = Math.random() < blitzChance;
+    var fallback = BLITZ_PACKAGES.filter(function(b){ return b.id!=="b0"; });
+    blitz = useBlitz ? lrPick(candidates.length ? candidates : fallback) : lrById(BLITZ_PACKAGES,"b0");
+    key = formation.id+"|"+coverage.kind+"|"+blitz.id;
+    if(!lrIsRepeat(key)) break;
+  }
+  lrRemember(key);
+
+  var decisionType;
+  if(blitz.id==="b0"){
+    decisionType = "protection"; /* nothing to ID or beat with a hot route when there's no pressure */
+  } else {
+    var pool = ["route","blitzID"];
+    if(level>=3) pool.push("protection");
+    decisionType = (forceType && pool.indexOf(forceType)!==-1) ? forceType : lrPick(pool);
+  }
+
+  var ctx = formation.name+", "+lrOrdinal(situation.down)+" and "+situation.dist+", "+situation.hash+" hash.";
+  var prompt, correctText, explanation, choicesPool, correctObj;
+
+  if(decisionType==="blitzID"){
+    prompt = ctx+" "+coverage.name+" behind it. "+blitz.tell+" Who is the free rusher you have to account for?";
+    correctObj = blitz;
+    correctText = blitz.extra;
+    explanation = blitz.tell+" That is "+blitz.name+" — the free rusher is the "+blitz.extra.toLowerCase()+".";
+    var otherBlitz = lrShuffle(BLITZ_PACKAGES.filter(function(b){ return b.id!==blitz.id && b.extra; })).slice(0,3);
+    choicesPool = otherBlitz.map(function(b){ return b.extra; });
+  } else if(decisionType==="protection"){
+    var beaters = PROTECTIONS.filter(function(p){ return p.beats.indexOf(blitz.id)!==-1; });
+    correctObj = beaters.length ? lrPick(beaters) : lrById(PROTECTIONS,"p0");
+    prompt = blitz.id==="b0"
+      ? ctx+" "+coverage.name+". "+blitz.tell+" What protection call fits a normal four-man rush?"
+      : ctx+" "+coverage.name+". "+blitz.tell+" What protection call correctly accounts for the extra rusher?";
+    correctText = correctObj.name;
+    explanation = correctObj.desc;
+    choicesPool = lrShuffle(PROTECTIONS.filter(function(p){ return p.id!==correctObj.id; })).slice(0,3).map(function(p){ return p.name; });
+  } else { /* route — only reached when a blitz is actually live */
+    var byBlitz = HOT_ROUTES.filter(function(h){ return h.beatsBlitz.indexOf(blitz.id)!==-1; });
+    correctObj = byBlitz.length ? lrPick(byBlitz) : lrPick(HOT_ROUTES);
+    prompt = ctx+" "+coverage.name+". "+blitz.tell+" What is the correct hot route to beat this look?";
+    correctText = correctObj.name;
+    explanation = correctObj.desc;
+    choicesPool = lrShuffle(HOT_ROUTES.filter(function(h){ return h.id!==correctObj.id; })).slice(0,3).map(function(h){ return h.name; });
+  }
+
+  var choices = lrShuffle([correctText].concat(choicesPool));
+  var correctIndex = choices.indexOf(correctText);
+
+  return {
+    formation: formation, coverage: coverage, blitz: blitz, situation: situation,
+    decisionType: decisionType, prompt: prompt, choices: choices,
+    correctIndex: correctIndex, explanation: explanation
+  };
+}
+
 /* ============================== QUESTION BANK ============================== */
 /* [id, level(1-5), topic, question, [choices], correctIndex, explanation] */
 var BANK = [
